@@ -1,3 +1,20 @@
+//*********************************************************************************************************/
+//  WT32-SC01-PLUS template for platform.io
+//  created by Frits Jan / productbakery on 11 oktober 2022
+//
+//
+// When working with the squareline editor from lvgl, set the project in squareline to:
+// - Arduino, with TFT_eSPI (which we cannot use, but will replace with LovyanGFX in this main.cpp file)
+// - 480 x 320, 16 bit display
+// 
+// Export the template project AND export the UI Files
+// You will get a project directory with two directories inside, 'ui' and 'libraries'
+// From the libraries directory, copy the lv_conf.h to this projects /src/ directory (overwrite the old one)
+// From the ui directory, copy all files to this projects src/ui/ directory (you can empty the ui directory first if needed)
+// The ui.ino file can/should be deleted because this main.cpp files takes over.
+//
+//*********************************************************************************************************/
+
 #define LGFX_USE_V1
 #include <LovyanGFX.hpp>
 
@@ -101,17 +118,28 @@ public:
 };
 
 #include <lvgl.h>
+#include "ui/ui.h" // this is the ui generated with lvgl / squareline editor
 
 LGFX tft;
 
 #define screenWidth 480
 #define screenHeight 320
 
+// lv debugging can be set in lv_conf.h
+#if LV_USE_LOG != 0
+/* Serial debugging */
+void my_print(const char * buf)
+{
+    Serial.printf(buf);
+    Serial.flush();
+}
+#endif
+
 // create buffer for display
 static lv_disp_draw_buf_t draw_buf;
 static lv_color_t buf[screenWidth * 10];
 
-// create function for display
+/* Display flushing */
 void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
   uint32_t w = (area->x2 - area->x1 + 1);
   uint32_t h = (area->y2 - area->y1 + 1);
@@ -122,7 +150,7 @@ void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color
   lv_disp_flush_ready(disp);
 }
 
-// create function for touch input
+/*Read the touchpad*/
 void my_touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
     uint16_t touchX, touchY;
     bool touched = tft.getTouch(&touchX, &touchY);
@@ -131,48 +159,13 @@ void my_touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
       data->state = LV_INDEV_STATE_PR;
       data->point.x = touchX;
       data->point.y = touchY;
+
+      #if DEBUG_TOUCH !=0
+      Serial.print( "Data x " ); Serial.println( touchX );
+      Serial.print( "Data y " ); Serial.println( touchY );
+      #endif
     }
 }
-
-//***********************************************************************************
-// ACTUAL UI COMES HERE
-
-static lv_style_t label_style;
-static lv_obj_t *headerLabel;
-static lv_obj_t * label;
-
-static void slider_event_cb(lv_event_t * e)
-{
-    lv_obj_t * slider = lv_event_get_target(e);
-
-    /*Refresh the text*/
-    lv_label_set_text_fmt(label, "%"LV_PRId32, lv_slider_get_value(slider));
-    Serial.print("Slider: ");
-    Serial.println(lv_slider_get_value(slider));
-    lv_obj_align_to(label, slider, LV_ALIGN_OUT_TOP_MID, 0, -15);    /*Align top of the slider*/
-}
-
-/**
- * Create a slider and write its value on a label.
- */
-void lv_example_get_started_3(void)
-{
-    /*Create a slider in the center of the display*/
-    lv_obj_t * slider = lv_slider_create(lv_scr_act());
-    lv_obj_set_width(slider, 250);                          /*Set the width*/
-    lv_obj_center(slider);                                  /*Align to the center of the parent (screen)*/
-    lv_obj_add_event_cb(slider, slider_event_cb, LV_EVENT_VALUE_CHANGED, NULL);     /*Assign an event function*/
-
-    /*Create a label above the slider*/
-    label = lv_label_create(lv_scr_act());
-    lv_label_set_text(label, "0");
-    lv_obj_align_to(label, slider, LV_ALIGN_OUT_TOP_MID, 0, -15);    /*Align top of the slider*/
-}
-
-// UI END
-//************************************************************************************
-
-
 
 //************************************************************************************
 //  SETUP AND LOOP
@@ -186,7 +179,14 @@ void setup() {
   tft.setBrightness(255);
 
   lv_init();
+
+  #if LV_USE_LOG != 0
+    lv_log_register_print_cb( my_print ); /* register print function for debugging */
+  #endif
+
   lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * 10);
+
+  /*Initialize the display*/
   static lv_disp_drv_t disp_drv;
   lv_disp_drv_init(&disp_drv);
   disp_drv.hor_res = screenWidth;
@@ -194,17 +194,17 @@ void setup() {
   disp_drv.flush_cb = my_disp_flush;
   disp_drv.draw_buf = &draw_buf;
   lv_disp_drv_register(&disp_drv);
+
+  /*Initialize the input device driver*/
   static lv_indev_drv_t indev_drv;
   lv_indev_drv_init(&indev_drv);
   indev_drv.type = LV_INDEV_TYPE_POINTER;
   indev_drv.read_cb = my_touch_read;
   lv_indev_drv_register(&indev_drv);
   
-  Serial.println("STARTING");
-
   // start the UI
-  lv_example_get_started_3();
-
+  ui_init();
+  
 }
 
 void loop() {
