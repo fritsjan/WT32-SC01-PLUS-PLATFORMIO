@@ -9,14 +9,14 @@ Fortunately LovyanGFX library does not have this restriction.
 
 ## This template is made for easy use in platform.io 
 
-First of all the WT32-SC01-PLUS is using a custom ESP32-S3 module made by WIRELESS-TAG
+First of all the WT32-SC01-PLUS is using a custom ESP32-S3 module made by WIRELESS-TAG.
 It has 8Mb FLASH and 2Mb PSRAM. In platform.io the closest esp32-s3 for this is the um_tinys3 board.
 So I used this here, see platform.ini for details
 
 Note that after uploading the firmware, the device is NOT automatically restarted, you have to do this manually (BUG in ESP32 library)
 ## This template works together with the squareline editor from lvgl, this is the workflow used
 
-When working with the squareline editor from lvgl, set the project in squareline to:
+When working with the [squareline editor](https://squareline.io/) from lvgl, set the project in squareline to:
 - Arduino, with TFT_eSPI (which we cannot use, but will replace with LovyanGFX in this main.cpp file)
 - 480 x 320, 16 bit display
 
